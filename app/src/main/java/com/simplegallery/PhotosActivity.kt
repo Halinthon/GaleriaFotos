@@ -35,11 +35,10 @@ class PhotosActivity : AppCompatActivity() {
                     startActivity(Intent(this, VideoActivity::class.java)
                         .putExtra("uri", item.uri.toString()))
                 } else {
+                    // FIX: solo pasar álbum + posición, sin lista de URIs en el Intent
                     startActivity(Intent(this, ViewerActivity::class.java)
-                        .putExtra("uri", item.uri.toString())
-                        .putExtra("pos", pos)
-                        .putParcelableArrayListExtra("items",
-                            ArrayList(items.map { it.uri })))
+                        .putExtra("album", albumName)
+                        .putExtra("pos", pos))
                 }
             },
             onLongClick = { item, pos -> confirmDelete(item, pos) }
