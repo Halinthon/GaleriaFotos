@@ -3,17 +3,15 @@ package com.simplegallery
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.*
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.FileProvider
-import androidx.viewpager2.widget.ViewPager2
-import android.view.*
 import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.widget.ViewPager2
 import com.bumptech.glide.Glide
 import com.github.chrisbanes.photoview.PhotoView
 import com.simplegallery.databinding.ActivityViewerBinding
-import java.io.File
 
 class ViewerActivity : AppCompatActivity() {
 
@@ -28,8 +26,14 @@ class ViewerActivity : AppCompatActivity() {
         setSupportActionBar(b.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        uris = intent.getParcelableArrayListExtra<Uri>("items") ?: emptyList()
-        currentPos = intent.getIntExtra("pos", 0)
+        // FIX: cargar URIs desde MediaLoader usando album + pos, nunca desde el Intent
+        val albumName = intent.getStringExtra("album") ?: return finish()
+        currentPos   = intent.getIntExtra("pos", 0)
+
+        // Filtrar solo fotos (sin videos) para el visor
+        uris = MediaLoader.loadByAlbum(this, albumName)
+            .filter { !it.isVideo }
+            .map { it.uri }
 
         b.pager.adapter = ViewerAdapter(uris)
         b.pager.setCurrentItem(currentPos, false)
@@ -57,17 +61,10 @@ class ViewerActivity : AppCompatActivity() {
 
     private fun shareCurrentPhoto() {
         val uri = uris.getOrNull(currentPos) ?: return
-        // Convertir content URI a FileProvider URI para compartir
-        val shareUri = try {
-            val file = File(uri.path ?: return)
-            FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
-        } catch (e: Exception) {
-            uri // usar URI directa si falla
-        }
         startActivity(Intent.createChooser(
             Intent(Intent.ACTION_SEND).apply {
                 type = "image/*"
-                putExtra(Intent.EXTRA_STREAM, shareUri)
+                putExtra(Intent.EXTRA_STREAM, uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }, "Compartir foto"
         ))
